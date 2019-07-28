@@ -1,0 +1,27 @@
+FROM node:10-alpine AS builder
+ENV PORT=8080
+WORKDIR /source
+COPY . /source
+RUN rm -rf /source/node_modules /source/package-lock.json /source/yarn.lock
+RUN mkdir -p /source/logs
+RUN yarn install --silent --only=production
+RUN yarn build
+
+
+# Use multistage to reduce final image size
+FROM node:10-alpine
+RUN apk add --no-cache tini tzdata
+RUN addgroup -g 211000 -S appgroup && adduser -u 211000 -S appuser -G appgroup
+RUN mkdir -p /app/logs
+COPY vuejs-startup.sh /app
+COPY --from=builder /source/.vuesion /app/.vuesion
+COPY --from=builder /source/i18n /app/i18n
+COPY --from=builder /source/package.json /app
+COPY --from=builder /source/dist /app/dist
+RUN chown -R appuser:appgroup /app
+RUN chmod +x /app/vuejs-startup.sh
+COPY --from=builder /source/node_modules /app/node_modules
+USER appuser
+EXPOSE 8080
+WORKDIR /app
+ENTRYPOINT ["/sbin/tini","-sg","--","/app/vuejs-startup.sh"]
