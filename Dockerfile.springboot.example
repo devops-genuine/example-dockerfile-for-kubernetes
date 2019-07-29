@@ -1,0 +1,20 @@
+FROM maven:3.6.1-jdk-8 AS builder
+
+WORKDIR /source
+COPY . .
+
+RUN mvn clean package
+
+FROM openjdk:8-alpine
+RUN apk add --no-cache tini tzdata
+RUN addgroup -g 211000 -S appgroup && adduser -u 211000 -S appuser -G appgroup
+COPY springboot-startup.sh /app
+COPY --from=0 /source/target/hello-world-0.0.1-SNAPSHOT.jar /app/app.jar
+RUN chmod a+x /app/app.jar && \
+    chown -R appuser:appgroup /app && \
+    chmod +x /app/springboot-startup.sh
+USER appuser
+
+WORKDIR /app
+
+ENTRYPOINT ["/sbin/tini","-sg","--","springboot-startup.sh"]
