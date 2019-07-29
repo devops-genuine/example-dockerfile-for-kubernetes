@@ -1,4 +1,4 @@
-FROM nginx:1.14.1-alpine
+FROM nginx:1.15.12-alpine    # nginx-mod-http-headers-more is supported only nginx 1.151.2 and below
 
 RUN apk --no-cache add shadow 'nginx-mod-http-headers-more' && \
     usermod -u 211000 nginx && \
