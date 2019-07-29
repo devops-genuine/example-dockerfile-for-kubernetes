@@ -1,16 +1,17 @@
-FROM nginx:1.17.2-alpine
+FROM nginx:1.14.1-alpine
 
 RUN apk --no-cache add shadow 'nginx-mod-http-headers-more' && \
     usermod -u 211000 nginx && \
     groupmod -g 211000 nginx
-RUN chown -R nginx:nginx /etc/nginx
-RUN rm -rf /etc/nginx/conf.d/*.conf
+RUN chown -R nginx:nginx /etc/nginx && \
+    chown -R nginx:nginx /usr/lib/nginx && \
+    rm -rf /etc/nginx/conf.d/*.conf
 
 RUN apk add --no-cache tini tzdata
 RUN mkdir -p /app
 COPY nginx-startup.sh /app
 
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-modules.conf /etc/nginx/nginx.conf
 
 COPY index.html /var/www/html/index.html
 
