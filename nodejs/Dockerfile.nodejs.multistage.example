@@ -1,0 +1,36 @@
+FROM node:10.16.0-alpine AS dependencies
+
+RUN mkdir -p /app
+WORKDIR /app
+
+COPY package.json .
+COPY yarn.lock .
+
+RUN yarn install --production
+
+RUN cp -R node_modules prod_node_modules
+
+RUN yarn install
+
+COPY . .
+
+#----------------------------------#
+FROM dependencies AS build
+
+RUN yarn build
+
+#----------------------------------#
+FROM node:10.16.0-alpine AS release
+RUN addgroup -g 211000 -S appgroup && adduser -u 211000 -S appuser -G appgroup
+
+RUN mkdir -p /app
+WORKDIR /app
+
+RUN chown -R appuser:appgroup /app
+
+COPY --from=dependencies /app/prod_node_modules ./node_modules
+COPY --from=build /app/build ./build
+
+USER appuser
+
+ENTRYPOINT["node", "./build/index.js"]
